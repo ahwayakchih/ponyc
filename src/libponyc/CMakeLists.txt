@@ -107,11 +107,19 @@ target_compile_definitions(libponyc PRIVATE
     PONY_ALWAYS_ASSERT
 )
 
-target_include_directories(libponyc
-    PUBLIC ../common
-    PRIVATE ../../build/libs/include
-    PRIVATE ${CMAKE_BINARY_DIR}/pony_generated
-)
+if(PONY_USE_OS_LLVM)
+    target_include_directories(libponyc
+        PUBLIC ../common
+        PRIVATE ${CMAKE_BINARY_DIR}/pony_generated
+    )
+    target_link_libraries(libponyc PUBLIC ${PONYC_CLANG_LIBS} ${PONYC_LLVM_LIBS})
+else()
+    target_include_directories(libponyc
+        PUBLIC ../common
+        PRIVATE ../../build/libs/include
+        PRIVATE ${CMAKE_BINARY_DIR}/pony_generated
+    )
+endif()
 
 add_dependencies(libponyc pony_version)
 
@@ -234,13 +242,19 @@ elseif(${CMAKE_HOST_SYSTEM_NAME} MATCHES "DragonFly")
         COMMAND ${CMAKE_COMMAND} -E copy libponyc-standalone.a ${PONY_OUTPUT_DIR}/
     )
 elseif(${CMAKE_HOST_SYSTEM_NAME} MATCHES "Haiku")
+    if(PONY_USE_OS_LLVM)
+        set(LLVM_AVOID_STATIC "true")
+    else()
+        set(LLVM_AVOID_STATIC "false")
+    endif()
+
     # add a rule to generate the standalone library if needed
     # there's no static libstdc++, so it needs to be linked separately
     add_custom_command(OUTPUT libponyc-standalone.a
         COMMAND echo "create libponyc-standalone.a" > standalone.mri
-        COMMAND find ${PROJECT_SOURCE_DIR}/../../build/libs/ -name "libLLVM*.a" | xargs -I % -n 1 echo 'addlib %' >> standalone.mri
-        COMMAND find ${PROJECT_SOURCE_DIR}/../../build/libs/ -name "liblld*.a" | xargs -I % -n 1 echo 'addlib %' >> standalone.mri
-        COMMAND find ${PROJECT_SOURCE_DIR}/../../build/libs/ -name "libclang*.a" | xargs -I % -n 1 echo 'addlib %' >> standalone.mri
+        COMMAND ${LLVM_AVOID_STATIC} || (find ${PROJECT_SOURCE_DIR}/../../build/libs/ -name "libLLVM*.a" | xargs -I % -n 1 echo 'addlib %' >> standalone.mri)
+        COMMAND ${LLVM_AVOID_STATIC} || (find ${PROJECT_SOURCE_DIR}/../../build/libs/ -name "liblld*.a" | xargs -I % -n 1 echo 'addlib %' >> standalone.mri)
+        COMMAND ${LLVM_AVOID_STATIC} || (find ${PROJECT_SOURCE_DIR}/../../build/libs/ -name "libclang*.a" | xargs -I % -n 1 echo 'addlib %' >> standalone.mri)
         COMMAND echo "addlib $<TARGET_FILE:libponyc>" >> standalone.mri
         COMMAND echo "save" >> standalone.mri
         COMMAND echo "end" >> standalone.mri
