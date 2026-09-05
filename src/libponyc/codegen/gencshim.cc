@@ -194,6 +194,99 @@ static bool c_is_mac_on_mac(pass_opt_t* opt)
 }
 
 
+#ifdef USE_OS_LLVM
+#ifdef PLATFORM_IS_HAIKU
+// Haiku has its own way of geting system/user paths.
+static const char* clang_resource_dir(pass_opt_t* opt, errors_t* errors)
+{
+  char buf[PATH_MAX];
+
+  // It has to match the one that was used to build ponyc.
+  // So we have to pass the host triple instead of target triple.
+  char* default_triple_str = LLVMGetDefaultTargetTriple();
+  snprintf(buf, sizeof(buf), "%.*s", strcspn(default_triple_str, "-"), default_triple_str);
+  LLVMDisposeMessage(default_triple_str);
+
+  size_t path_count = 0;
+  char** candidates = get_haiku_path_candidates(buf, B_FIND_PATH_LIB_DIRECTORY, "clang", &path_count);
+ 
+  if(!candidates) {
+    errorf(errors, NULL, "unable to determine OS's lib/clang path while "
+      "looking for clang's resource directory");
+    return NULL;
+  }
+  
+  for(size_t i = 0; i < path_count; i++)
+  {
+    snprintf(buf, sizeof(buf), "%s/%d", candidates[i], CLANG_VERSION_MAJOR);
+    if(dir_exists(buf))
+    {
+      free(candidates);
+      return stringtab(opt->strtab, buf);
+    }
+  }
+
+  free(candidates);
+
+  errorf(errors, NULL, "unable to find clang's resource directory "
+    "(lib/clang/%d) in any of the %d candidate paths while targetting %s;"
+    " C shims need its builtin headers", CLANG_VERSION_MAJOR, path_count,
+    system_triple(opt));
+  return NULL;
+}
+#elif defined(PLATFORM_IS_POSIX_BASED)
+static const char* clang_resource_dir(pass_opt_t* opt, errors_t* errors)
+{
+  // It has to match the one that was used to build ponyc.
+  // So we have to pass the host triple instead of target triple.
+  char* default_triple_str = LLVMGetDefaultTargetTriple();
+  llvm::Triple host(default_triple_str);
+  LLVMDisposeMessage(default_triple_str);
+
+  char buf[FILENAME_MAX];
+
+  size_t path_count = 0;
+
+  if(host.isArch64Bit()){
+    snprintf(buf, sizeof(buf), "%cusr%clib64%cclang%c%d",
+      PATH_SLASH, PATH_SLASH, PATH_SLASH, PATH_SLASH, CLANG_VERSION_MAJOR);
+
+    if(dir_exists(buf))
+      return stringtab(opt->strtab, buf);
+    path_count++;
+
+    snprintf(buf, sizeof(buf), "%clib64%cclang%c%d",
+      PATH_SLASH, PATH_SLASH, PATH_SLASH, CLANG_VERSION_MAJOR);
+
+    if(dir_exists(buf))
+      return stringtab(opt->strtab, buf);
+    path_count++;
+  }
+
+  snprintf(buf, sizeof(buf), "%cusr%clib%cclang%c%d",
+    PATH_SLASH, PATH_SLASH, PATH_SLASH, PATH_SLASH, CLANG_VERSION_MAJOR);
+
+  if(dir_exists(buf))
+    return stringtab(opt->strtab, buf);
+  path_count++;
+
+  snprintf(buf, sizeof(buf), "%clib%cclang%c%d",
+    PATH_SLASH, PATH_SLASH, PATH_SLASH, CLANG_VERSION_MAJOR);
+
+  if(dir_exists(buf))
+    return stringtab(opt->strtab, buf);
+  path_count++;
+
+  errorf(errors, NULL, "unable to find clang's resource directory "
+    "(lib/clang/%d) in any of the %zu candidate paths while targetting %s;"
+    " C shims need its builtin headers", CLANG_VERSION_MAJOR, path_count,
+    system_triple(opt));
+  return NULL;
+}
+#else
+  #error "clang_resource_dir not implemented for PONY_USE_OS_LLVM on this platform"
+#endif
+#else
 // Locate clang's resource directory (builtin headers such as stddef.h).
 // It ships at a known offset from the ponyc binary: ../lib/clang/<major>
 // in an installation (see the CMake install rules), or
@@ -236,6 +329,7 @@ static const char* clang_resource_dir(pass_opt_t* opt, errors_t* errors)
     "builtin headers", CLANG_VERSION_MAJOR);
   return NULL;
 }
+#endif
 
 
 // The sysroot the shim compile resolves system headers against. Shares the

@@ -418,12 +418,14 @@ jobs:
     name: x86-64 Haiku r1beta6
     env:
       HAIKU_VERSION: r1beta6
+      PONY_USE_OS_LLVM: 'ON'
     steps:
       - name: Checkout
         uses: actions/checkout@v6.0.2
       - name: Create source for LIBS_TAG
         run: |
           echo $HAIKU_VERSION >haiku_libs_tag.source
+          echo $PONY_USE_OS_LLVM >>haiku_libs_tag.source
           sha256sum \
             ponyc/lib/CMakePresets.json \
             ponyc/CMakeLists.txt \

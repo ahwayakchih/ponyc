@@ -21,6 +21,7 @@ The build is divided into several stages:
 
 - Build the vendored LLVM libraries that are included in the `lib/llvm/src` Git submodule by running `cmake -P lib/build-libs.cmake`.  This stage only needs to be run once the first time you build (or if the vendored LLVM submodule changes, or if you delete the `build` directory).
   - This can take a while. To use more cores, pass `-DJOBS=6`, replacing `6` with the number of CPU cores available (LLVM is memory-hungry, so keep it modest).  Note, This argument will be ignored if it is not placed before the "Process" (-P) flag: `cmake -DJOBS=6 -P lib/build-libs.cmake`.
+  - To avoid building LLVM completely and use globally installed LLVM and clang, pass `-DPONY_USE_OS_LLVM=ON`. You'll have to pass it to the next command too.
 
 - `cmake --preset release` to configure the build directory.  Use `cmake --preset debug` for a debug build.
 - `cmake --build --preset release` will build ponyc and put it in `build/release`.  Use `cmake --build --preset debug` for a debug build that goes in `build/debug`.
@@ -189,23 +190,28 @@ You'll need additional, non-default software packages on Haiku:
 - cmake
 - python3.14
 - libexecinfo_devel
+- llvm22
+- llvm22_clang
+- llvm22_libs
+- llvm22_lld
+- llvm22_openmp
 
 A quick way to install those is to run following command in the Terminal:
 
 ```bash
-pkgman install cmake python3.14 libexecinfo_devel
+pkgman install cmake python3.14 libexecinfo_devel llvm22 llvm22_clang llvm22_libs llvm22_lld llvm22_openmp
 ```
 
 Once that's done, rest of the steps are similar to other operating systems:
 
 ```bash
-cmake -DPRESET=libs-haiku-x86-64 -P lib/build-libs.cmake
-cmake --preset release -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++
+cmake -DPONY_USE_OS_LLVM=ON -DPRESET=libs-haiku-x86-64 -P lib/build-libs.cmake
+cmake --preset release -DPONY_USES=os_llvm -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++
 cmake --build --preset release
 cmake --install build/build_release --prefix /boot/system/non-packaged/
 ```
 
-Note that you only need to run `cmake -DPRESET=libs-haiku-x86-64 -P lib/build-libs.cmake` once the first time you build (or if the version of LLVM in the `lib/llvm/src` Git submodule changes).
+Note that you only need to run `cmake -DPONY_USE_OS_LLVM -DPRESET=libs-haiku-x86-64 -P lib/build-libs.cmake` once the first time you build.
 
 ## Windows
 
@@ -363,6 +369,19 @@ cmake --build --preset release
 ```
 
 More information about systematic testing can be found in [SYSTEMATIC_TESTING.md](SYSTEMATIC_TESTING.md).
+
+### use OS-installed LLVM and clang
+
+Building whole LLVM takes a lot of time, and on some systems using shared libraries is preferred.
+So, unless your build requires using patched LLVM and/or LLD, you can use system installed libraries instead.
+
+Shared LLVM is used by setting `use=os_llvm` in the configure step like:
+
+```bash
+cmake -DPONY_USE_OS_LLVM=ON -P lib/build-libs.cmake
+cmake --preset release -DPONY_USES=os_llvm
+cmake --build --preset release
+```
 
 ## Compiler Development
 

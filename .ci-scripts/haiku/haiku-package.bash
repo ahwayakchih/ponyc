@@ -19,6 +19,15 @@ ARCH=${ARCH:=$(uname -m)}
 PACKAGE_REVISION=${PACKAGE_REVISION:=1}
 HAIKU_REQUIREMENT=$(ls /boot/system/packages|grep haiku-|sed 's/-[^-]*\.hpkg//'|sed 's/-/ >= /')
 LIBEXECINFO_REQUIREMENT=$(ls /boot/system/packages|grep libexecinfo-|sed 's/-[^-]*\.hpkg//'|sed 's/-/ >= /')
+LLVM_REQUIREMENTS="llvm22 llvm22_clang llvm22_libs llvm22_lld llvm22_openmp"
+
+# Check if ponyc depends on libLLVM, and drop LLVM_REQUIREMENTS otherwise
+for f in `find $BUILD_PREFIX/lib/pony/**/bin/ponyc -maxdepth 0 -xtype f` ; do
+	if test -z $(readelf -d $f | grep -o libLLVM) ; then
+		LLVM_REQUIREMENTS=
+		break
+	fi
+done
 
 # Create .PackageInfo file
 cat >"$PACKAGE_DIR/.PackageInfo" <<EOF
@@ -52,6 +61,7 @@ provides {
 requires {
 	$HAIKU_REQUIREMENT
 	$LIBEXECINFO_REQUIREMENT
+$(for lib in $LLVM_REQUIREMENTS ; do ls /boot/system/packages|grep "$lib"-|sed 's/-[^-]*\.hpkg//'|sed 's/-/ >= /'|sed 's/^/\t/'; done)
 #	cmake >= 4.1.6
 #	python3.14 >= 3.14.6
 #	libexecinfo_devel >= 1.1.6

@@ -32,7 +32,8 @@
       "cacheVariables": {
         "CMAKE_C_COMPILER": "gcc",
         "CMAKE_CXX_COMPILER": "g++",
-        "LLVM_TARGETS_TO_BUILD": "X86"
+        "LLVM_TARGETS_TO_BUILD": "X86",
+        "PONY_USE_OS_LLVM": "ON"
       }
     },
     {
