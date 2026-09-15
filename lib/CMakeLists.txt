@@ -66,6 +66,10 @@ ExternalProject_Add(googletest
     CMAKE_ARGS -DCMAKE_BUILD_TYPE=${PONYC_LIBS_BUILD_TYPE} -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX} ${PONYC_LIBS_COMPILER_ARGS} -DCMAKE_CXX_FLAGS=${PONY_PIC_FLAG} -Dgtest_force_shared_crt=ON --no-warn-unused-cli
 )
 
+if(DEFINED PONY_USE_OS_LLVM AND PONY_USE_OS_LLVM)
+    return()
+endif()
+
 find_package(Git)
 
 set(LLVM_DESIRED_HASH "fc4aad7b5db3fff421df9a9637605b9ca5667881")
