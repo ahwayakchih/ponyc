@@ -921,6 +921,22 @@ static void platform_runtimestatsmessages(compile_t* c, reach_type_t* t, token_i
   codegen_finishfun(c);
 }
 
+static void platform_osllvm(compile_t* c, reach_type_t* t, token_id cap)
+{
+  FIND_METHOD("osllvm", cap);
+  start_function(c, t, m, c->i1, &c_t->use_type, 1);
+
+#ifdef USE_RUNTIMESTATS_MESSAGES
+  bool osllvm_enabled = true;
+#else
+  bool osllvm_enabled = false;
+#endif
+
+  LLVMValueRef result = LLVMConstInt(c->i1, osllvm_enabled, false);
+  genfun_build_ret(c, result);
+  codegen_finishfun(c);
+}
+
 void genprim_platform_methods(compile_t* c, reach_type_t* t)
 {
   BOX_FUNCTION(platform_freebsd, t);
@@ -941,6 +957,7 @@ void genprim_platform_methods(compile_t* c, reach_type_t* t)
   BOX_FUNCTION(platform_debug, t);
   BOX_FUNCTION(platform_runtimestats, t);
   BOX_FUNCTION(platform_runtimestatsmessages, t);
+  BOX_FUNCTION(platform_osllvm, t);
 }
 
 typedef struct num_conv_t
