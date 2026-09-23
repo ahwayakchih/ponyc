@@ -40,7 +40,8 @@ set(_pony_known_uses
     runtimestats
     runtimestats_messages
     pool_memalign
-    reach_instrument)
+    reach_instrument
+    os_llvm)
 
 # The subset of the above that Windows (MSVC) accepts. See the MSVC check
 # below.
@@ -123,6 +124,8 @@ foreach(_use IN LISTS _pony_uses)
         _pony_set_use(POOL_MEMALIGN ON)
     elseif(_use STREQUAL "reach_instrument")
         _pony_set_use(REACH_INSTRUMENT ON)
+    elseif(_use STREQUAL "os_llvm")
+        _pony_set_use(OS_LLVM ON)
     else()
         message(FATAL_ERROR "Unknown use option specified: ${_use}")
     endif()

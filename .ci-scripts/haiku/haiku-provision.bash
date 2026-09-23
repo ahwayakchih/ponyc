@@ -28,7 +28,7 @@ mkdir -p "$VM_ARTIFACTS"
 
 # Dependencies we need for ponyc building and testing, that are not installed
 # by default. These should be kept up-to-date with info from BUILD.md, plus `rsync`.
-HAIKU_PACKAGES="cmake python3.14 libexecinfo_devel openssl3_devel rsync"
+HAIKU_PACKAGES="cmake python3.14 libexecinfo_devel openssl3_devel llvm23 llvm23_clang llvm23_libs llvm23_lld llvm23_openmp rsync"
 
 # Nightly and LTS releases are hosted and served differently, so we have to handle
 # them differently too.
