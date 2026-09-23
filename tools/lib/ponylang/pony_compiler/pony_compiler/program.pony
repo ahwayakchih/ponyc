@@ -1,6 +1,15 @@
 use "lib:ponyc-standalone"
 use "lib:z" if not windows
 use "lib:c++" if osx
+use "lib:LLVM" if osllvm
+use "lib:clang" if osllvm
+use "lib:clang-cpp" if osllvm
+use "lib:lldCommon" if osllvm
+use "lib:lldWasm" if osllvm
+use "lib:lldMachO" if osllvm
+use "lib:lldMinGW" if osllvm
+use "lib:lldELF" if osllvm
+use "lib:lldCOFF" if osllvm
 use "files"
 
 

@@ -24,3 +24,4 @@ primitive Platform
   fun debug(): Bool => compile_intrinsic
   fun runtimestats(): Bool => compile_intrinsic
   fun runtimestatsmessages(): Bool => compile_intrinsic
+  fun osllvm(): Bool => compile_intrinsic

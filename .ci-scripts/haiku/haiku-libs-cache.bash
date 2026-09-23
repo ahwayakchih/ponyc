@@ -16,8 +16,8 @@
 # Reads GITHUB_TOKEN, GITHUB_REPOSITORY, GITHUB_ACTOR, and LIBS_TAG from the
 # environment and forwards them into the VM. The workflow step sets GITHUB_TOKEN
 # and LIBS_TAG; the runner provides GITHUB_REPOSITORY and GITHUB_ACTOR.
-# Additional, optional JOBS is read from environment.
-# It is set by the workflow. When set, it is passed into the VM.
+# Additional, optional PONY_USE_OS_LLVM is read from environment. It is set by
+# the workflow. When set, it's passed into the VM.
 set -euo pipefail
 
 operation=${1:?usage: haiku-libs-cache.bash <operation>}
@@ -32,6 +32,13 @@ GITHUB_ACTOR=${GITHUB_ACTOR:-}
 # Optional number of jobs to run concurrently. Defaults to 4.
 JOBS=${JOBS:-4}
 
+# Unless PONY_USE_OS_LLVM is OFF, build without LLVM
+PONY_USE_OS_LLVM=${PONY_USE_OS_LLVM:-}
+if test -n "${PONY_USE_OS_LLVM}" ; then
+  PONY_USE_OS_LLVM="-DPONY_USE_OS_LLVM=${PONY_USE_OS_LLVM}"
+  echo "passing ${PONY_USE_OS_LLVM} into the VM for cmake command"
+fi
+
 # The command(s) to run in the VM. build-push-branch warns and continues on a
 # push failure (tier3 rebuilds next run); build-push-main and restore are fatal.
 # Haiku builds on a dedicated /Data disk (its default disklabel confines root),
@@ -43,12 +50,12 @@ case "$operation" in
     remote_body="python3 .ci-scripts/libs-cache/resolve_libs_cache.py --require-cache-hit --branch-cache --platform haiku --tag '${LIBS_TAG}'"
     ;;
   build-push-branch)
-    remote_body="cmake -DJOBS=${JOBS} -DPRESET=libs-haiku-x86-64 -P lib/build-libs.cmake
+    remote_body="cmake -DJOBS=${JOBS} ${PONY_USE_OS_LLVM} -DPRESET=libs-haiku-x86-64 -P lib/build-libs.cmake
 rm -rf build/build_libs
 python3 .ci-scripts/libs-cache/branch_libs_cache.py push --platform haiku --tag '${LIBS_TAG}' || echo '::warning::haiku branch libs cache push failed, will rebuild next run'"
     ;;
   build-push-main)
-    remote_body="cmake -DJOBS=${JOBS} -DPRESET=libs-haiku-x86-64 -P lib/build-libs.cmake
+    remote_body="cmake -DJOBS=${JOBS} ${PONY_USE_OS_LLVM} -DPRESET=libs-haiku-x86-64 -P lib/build-libs.cmake
 rm -rf build/build_libs
 python3 .ci-scripts/libs-cache/oci_libs_cache.py push --platform haiku --tag '${LIBS_TAG}'"
     ;;
