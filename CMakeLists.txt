@@ -83,7 +83,11 @@ endif()
 
 # We require LLVM, Google Test and Google Benchmark
 if(NOT PONY_CROSS_LIBPONYRT)
-    find_package(LLVM REQUIRED CONFIG PATHS "build/libs/lib/cmake/llvm" "build/libs/lib64/cmake/llvm" NO_DEFAULT_PATH)
+    if(DEFINED PONY_USE_OS_LLVM AND PONY_USE_OS_LLVM)
+        find_package(LLVM REQUIRED CONFIG)
+    else()
+        find_package(LLVM REQUIRED CONFIG PATHS "build/libs/lib/cmake/llvm" "build/libs/lib64/cmake/llvm" NO_DEFAULT_PATH)
+    endif()
 
     if(PONY_USE_LTO AND CMAKE_SIZEOF_VOID_P EQUAL 8 AND NOT MSVC AND LLVM_TOOLS_BINARY_DIR)
         set(_pony_llvm_ar "${LLVM_TOOLS_BINARY_DIR}/llvm-ar")
@@ -108,8 +112,14 @@ if(NOT PONY_CROSS_LIBPONYRT)
         endif()
     endif()
 
-    find_package(LLD REQUIRED CONFIG PATHS "build/libs/lib/cmake/lld" "build/libs/lib64/cmake/lld" NO_DEFAULT_PATH)
-    find_package(Clang REQUIRED CONFIG PATHS "build/libs/lib/cmake/clang" "build/libs/lib64/cmake/clang" NO_DEFAULT_PATH)
+    if(DEFINED PONY_USE_OS_LLVM AND PONY_USE_OS_LLVM)
+        find_package(LLD REQUIRED CONFIG)
+        find_package(Clang REQUIRED CONFIG)
+    else()
+        find_package(LLD REQUIRED CONFIG PATHS "build/libs/lib/cmake/lld" "build/libs/lib64/cmake/lld" NO_DEFAULT_PATH)
+        find_package(Clang REQUIRED CONFIG PATHS "build/libs/lib/cmake/clang" "build/libs/lib64/cmake/clang" NO_DEFAULT_PATH)
+    endif()
+
     find_package(GTest REQUIRED CONFIG PATHS "build/libs/lib/cmake/GTest" "build/libs/lib64/cmake/GTest" NO_DEFAULT_PATH)
     find_package(benchmark REQUIRED CONFIG PATHS "build/libs/lib/cmake/benchmark" "build/libs/lib64/cmake/benchmark" NO_DEFAULT_PATH)
     # Detect SSL for the stdlib net package (requires -Dopenssl_3.0.x etc.)
@@ -258,6 +268,11 @@ endif()
 if(PONY_USE_REACH_INSTRUMENT)
     set(PONY_OUTPUT_SUFFIX "${PONY_OUTPUT_SUFFIX}-reach_instrument")
     list(APPEND PONY_RUNTIME_DEFINES -DUSE_REACH_INSTRUMENT)
+endif()
+
+if(PONY_USE_OS_LLVM)
+    set(PONY_OUTPUT_SUFFIX "${PONY_OUTPUT_SUFFIX}-os_llvm")
+    list(APPEND PONY_RUNTIME_DEFINES -DUSE_OS_LLVM)
 endif()
 
 # Keep the runtime's asserts -- pony_assert and the arena allocator's integrity
@@ -620,30 +635,36 @@ if(NOT PONY_CROSS_LIBPONYRT)
         )
     endif()
 
-    llvm_map_components_to_libnames(PONYC_LLVM_LIBS ${LLVM_COMPONENTS})
-    # message("PONYC_LLVM_LIBS: ${PONYC_LLVM_LIBS}")
+    if(PONY_USE_OS_LLVM)
+        set(PONYC_LLVM_LIBS LLVM)
+        set(PONYC_LLD_LIBS lldELF lldMachO lldCOFF lldWasm lldMinGW lldCommon)
+        set(PONYC_CLANG_LIBS clang clang-cpp)
+    else()
+        llvm_map_components_to_libnames(PONYC_LLVM_LIBS ${LLVM_COMPONENTS})
+        # message("PONYC_LLVM_LIBS: ${PONYC_LLVM_LIBS}")
 
-    set(PONYC_LLD_LIBS lldELF lldMachO lldCOFF lldWasm lldMinGW lldCommon)
+        set(PONYC_LLD_LIBS lldELF lldMachO lldCOFF lldWasm lldMinGW lldCommon)
 
-    # Imported targets exported by ClangConfig.cmake (found above). Each target
-    # carries its transitive clang/LLVM dependencies, so this list only needs
-    # the components gencshim uses directly: the frontend driving an in-process
-    # compile (CompilerInstance/CompilerInvocation) and object emission
-    # (EmitObjAction), plus the layers they sit on.
-    set(PONYC_CLANG_LIBS
-        clangFrontend
-        clangCodeGen
-        clangDriver
-        clangParse
-        clangSema
-        clangAnalysis
-        clangAST
-        clangLex
-        clangBasic
-        clangSerialization
-        clangEdit
-        clangSupport
-    )
+        # Imported targets exported by ClangConfig.cmake (found above). Each target
+        # carries its transitive clang/LLVM dependencies, so this list only needs
+        # the components gencshim uses directly: the frontend driving an in-process
+        # compile (CompilerInstance/CompilerInvocation) and object emission
+        # (EmitObjAction), plus the layers they sit on.
+        set(PONYC_CLANG_LIBS
+            clangFrontend
+            clangCodeGen
+            clangDriver
+            clangParse
+            clangSema
+            clangAnalysis
+            clangAST
+            clangLex
+            clangBasic
+            clangSerialization
+            clangEdit
+            clangSupport
+        )
+    endif()
 
     set(PONYC_SELFHOSTED_TOOL_PATH_ARGS "")
 

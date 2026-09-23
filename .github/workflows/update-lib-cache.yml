@@ -427,6 +427,7 @@ jobs:
     name: x86-64 Haiku hrev60160
     env:
       HAIKU_VERSION: hrev60160
+      PONY_USE_OS_LLVM: 'ON'
     steps:
       - name: Checkout
         uses: actions/checkout@v6.0.2
