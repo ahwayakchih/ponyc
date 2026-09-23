@@ -141,5 +141,16 @@ bool os_is_target(const char* attribute, bool release, bool* out_is_target, pass
     return true;
   }
 
+  if(!strcmp(attribute, OS_LLVM_NAME))
+  {
+#if defined(USE_OS_LLVM)
+    *out_is_target = true;
+#else
+    *out_is_target = false;
+#endif
+
+    return true;
+  }
+
   return false;
 }
