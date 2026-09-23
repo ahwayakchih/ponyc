@@ -15,6 +15,8 @@
 #   -DCMAKE_INSTALL_PREFIX=<path>  installation path (default: build/libs).
 #   -DPONY_PIC_FLAG=<flag>  position-independent-code flag (default -fpic; some
 #                    64-bit ARM targets need -fPIC).
+#   -DPONY_USE_OS_LLVM=ON  use os-provided LLVM, clang and lld instead of
+#                    building whole LLVM into the ponyc.
 
 if(NOT DEFINED PRESET)
     set(PRESET "libs")
@@ -38,15 +40,26 @@ foreach(_option PONYC_GBENCHMARK_URL PONYC_GOOGLETEST_URL CMAKE_INSTALL_PREFIX)
         list(APPEND _configure "-D${_option}=${${_option}}")
     endif()
 endforeach()
+if(DEFINED PONY_USE_OS_LLVM)
+    list(APPEND _configure "-DPONY_USE_OS_LLVM=${PONY_USE_OS_LLVM}")
+else()
+    list(APPEND _configure "-DPONY_USE_OS_LLVM=OFF")
+endif()
 
 execute_process(COMMAND ${_configure} RESULT_VARIABLE _rc)
 if(NOT _rc EQUAL 0)
     message(FATAL_ERROR "libs configure failed (exit ${_rc})")
 endif()
 
-execute_process(
-    COMMAND cmake --build "${_build}" --config Release --target install --parallel "${JOBS}"
-    RESULT_VARIABLE _rc)
+if(DEFINED PONY_USE_OS_LLVM AND PONY_USE_OS_LLVM)
+    execute_process(
+        COMMAND cmake --build "${_build}" --config Release --parallel "${JOBS}"
+        RESULT_VARIABLE _rc)
+else()
+    execute_process(
+        COMMAND cmake --build "${_build}" --config Release --target install --parallel "${JOBS}"
+        RESULT_VARIABLE _rc)
+endif()
 if(NOT _rc EQUAL 0)
     message(FATAL_ERROR "libs build failed (exit ${_rc})")
 endif()
