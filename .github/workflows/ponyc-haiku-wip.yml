@@ -45,7 +45,6 @@ jobs:
     needs: check-for-changes
     if: needs.check-for-changes.outputs.has-changes == 'true'
     runs-on: ubuntu-latest
-    name: x86-64 Haiku r1beta6
     env:
       HAIKU_VERSION: r1beta6
     steps:
